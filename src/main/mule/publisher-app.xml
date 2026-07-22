@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:xml-module="http://www.mulesoft.org/schema/mule/xml-module"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/xml-module http://www.mulesoft.org/schema/mule/xml-module/current/mule-xml-module.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="937281d8-0573-4669-8bc0-b7fbb0b17f79" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="customer-contact-appFlow" doc:id="93dea5b3-7409-4406-9e7e-5f96698931e8" >
+		<http:listener doc:name="Listener" doc:id="7299d7e7-633f-41fb-91a5-1435ab9de2d1" config-ref="HTTP_Listener_config" path="/customer"/>
+		<os:retrieve doc:name="Retrieve" doc:id="de6acbe9-3acf-42d4-9f47-577ed9ef707f" key="lastRunTime">
+			<os:default-value ><![CDATA[#[(now() - |PT30M|)
+	as DateTime {timezone: "UTC"}
+	as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}]]]></os:default-value>
+		</os:retrieve>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="f547610c-36e5-407c-b48d-f10ea690c9b5" variableName="lastRunTime"/>
+		<set-variable value='#[(now())&#10;	as DateTime {timezone: "UTC"}]' doc:name="Set Variable" doc:id="2a40ed72-759b-49f1-9239-f5eff79e0d7d" variableName="currentTime"/>
+		<db:select doc:name="Select" doc:id="0da94243-26e8-4b1d-82b4-f108aafa1f71" target="dbpayload" config-ref="Database_Config1">
+			<db:sql ><![CDATA[SELECT id, 
+	account_id AS AccountId,
+    birthdate AS Birthdate,
+    department AS Department,
+    email AS Email,
+    mobile AS Mobile,
+    first_name,
+    last_name,
+    last_modified_date
+FROM customer_contact;]]></db:sql>
+		</db:select>
+		<os:store doc:name="Store" doc:id="169c7d2e-15ba-46d4-8a05-717e668e8841" key="lastRunTime">
+			<os:value ><![CDATA[#[vars.currentTime]]]></os:value>
+		</os:store>
+		<ee:transform doc:name="Transform Message" doc:id="975846c9-a777-4b69-adeb-a8649b65bc2a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+vars.dbpayload map(item)->{
+	AccountId: item.AccountId as String,
+	Birthdate: item.Birthdate as String,
+	Department: item.Department as String,
+	Email: item.Email as String,
+	Mobile: item.Mobile as String
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c376776b-07e9-4fe8-bc0b-5a77b940e13c" message="#[payload]"/>
+		<batch:job jobName="customer-contact-appBatch_Job" doc:id="e6f353cd-dd4b-40c8-872e-1b8fffb31923" blockSize="10">
+			<batch:process-records>
+				<batch:step name="Batch_Step" doc:id="45960b73-2300-4a03-b216-9e7666124c1a" >
+					<choice doc:name="Choice" doc:id="fe1a222b-0460-47cc-8149-7faacabe2aeb" >
+						<when expression="#[payload.AccountId == null or payload.Birthdate == null or payload.Department == null or payload.Email == null or payload.Mobile == null]">
+							<logger level="INFO" doc:name="Logger" doc:id="c44ae4d8-94c6-4e48-b3e1-c02d77d17ea9" message="Invalid Records"/>
+						</when>
+						<otherwise >
+							<ee:transform doc:name="Transform Message" doc:id="120339d0-4daf-4468-aca9-2c47f3f375b9" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	AccountId: payload.AccountId as String,
+	Birthdate: payload.Birthdate as String,
+	Department: payload.Department as String,
+	Email: payload.Email as String,
+	Mobile: payload.Mobile as String
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+							<json:validate-schema doc:name="Validate schema" doc:id="33e9a47a-d2da-4852-93ac-76c9c266f529" schema="schema/customer-schema.json"/>
+							<logger level="INFO" doc:name="Logger" doc:id="58571b92-6201-4a9e-956a-4d01b0de14a4" message="#[payload]" />
+							<amqp:publish doc:name="Publish" doc:id="641bc6bf-4696-4312-a0ea-451f872ae4c1" exchangeName="customerData" sendCorrelationId="AUTO" returnedMessageExchange="Message published" config-ref="AMQP_Config1">
+								<amqp:routing-keys >
+									<amqp:routing-key value="1" />
+								</amqp:routing-keys>
+							</amqp:publish>
+							<logger level="INFO" doc:name="Logger1" doc:id="175e51dd-91c6-4b53-8e77-3288e9e56138" message="#[payload]" />
+							<flow-ref doc:name="Flow Reference" doc:id="74cd5079-4833-4e43-b0d7-257ac4b1afc1" name="consumer-appFlow"/>
+						</otherwise>
+					</choice>
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+	</flow>
+</mule>

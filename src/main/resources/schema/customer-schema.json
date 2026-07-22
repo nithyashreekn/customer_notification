@@ -1,0 +1,28 @@
+{
+"$schema": "http://json-schema.org/draft-04/schema#",
+"type": "object",
+"properties": {
+"AccountId": {
+"type": "string"
+},
+"Birthdate": {
+"type": "string"
+},
+"Department": {
+"type": "string"
+},
+"Email": {
+"type": "string"
+},
+"Mobile": {
+"type": "string"
+}
+},
+"required": [
+"AccountId",
+"Birthdate",
+"Department",
+"Email",
+"Mobile"
+]
+}

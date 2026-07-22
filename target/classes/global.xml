@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="0e903979-0979-473b-be3e-72c028aeec0c" file="dev.yaml" />
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="d4a09880-8f61-4792-9216-d68c7ebc42ab" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" database="${db.database}" />
+	</db:config>
+	<amqp:config name="AMQP_Config1" doc:name="AMQP Config" doc:id="34c157c3-24c4-4aa3-b1b2-078cdb24cf1f" >
+		<amqp:connection host="${amqp.host}" port="${amqp.port}" username="${amqp.username}" password="${amqp.password}" />
+	</amqp:config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="c4c8bf84-4add-4d26-ade9-4ad59ca284dc" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="4857d0c5-0d2b-415e-aa73-c8b1cd76111e" file="dev.yaml" key="nithya@20" fileLevelEncryption="true"/>
+	<global-property doc:name="Global Property" doc:id="e52b8087-f8dc-40b6-a8f1-16b4a69cbc47" name="key" value="nithya@20" />
+</mule>
